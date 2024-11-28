@@ -25,19 +25,15 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
 
     const saveUrl = async () => {
         if (url.length > 0)
-            if (validateURL(url)) {
-                try {
-                    await AsyncStorage.setItem('serverUrl', url);
-                    console.log('URL zapisany!');
-                    setError('');
-                    navigation.navigate('Home');
-                } catch (error) {
-                    console.error('Error saving URL:', error);
-                }
-
-            } else {
-                setError('Podany URL jest niepoprawny');
+            try {
+                await AsyncStorage.setItem('serverUrl', url);
+                console.log('URL zapisany!');
+                setError('');
+                navigation.navigate('Home');
+            } catch (error) {
+                console.error('Error saving URL:', error);
             }
+
         await AsyncStorage.setItem('serverSocketIp', socketIp);
         await AsyncStorage.setItem('serverSocketPort', socketPort);
     };

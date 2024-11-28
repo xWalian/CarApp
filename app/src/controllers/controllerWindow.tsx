@@ -91,6 +91,7 @@ const ControllerScreen: React.FC = () => {
     function interval(){
         intervalRef.current = setInterval(() => {
             if (latestDataRef.current) {
+                console.log("XDDDDDDD")
                 if(latestDataRef.current.type == "stop"){
                     if (intervalRef.current) {
                         clearInterval(intervalRef.current);
@@ -142,10 +143,11 @@ const ControllerScreen: React.FC = () => {
                 return;
             }
             try {
+                latestDataRef.current = data
                 if(!intervalRef.current){
                     interval()
                 }
-                latestDataRef.current = data
+
             } catch (error) {
                 console.error("Failed to send message:", error);
             }
