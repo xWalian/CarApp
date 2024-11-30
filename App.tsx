@@ -8,6 +8,8 @@ import ControllerScreen from "./app/src/controllers/controllerWindow.tsx";
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ControllerSettings from "./app/src/controllers/controllerSettings.tsx";
+import VideoClient from "./app/src/controllers/controllerSocket.tsx";
+
 import {useEffect} from "react";
 import Orientation from 'react-native-orientation-locker';
 
@@ -50,6 +52,7 @@ function HomeScreen({ navigation }: HomeScreenProps): React.JSX.Element {
             <Text style={styles.title}>CarAPP</Text>
             <Button label="Sterowanie" onPress={() => handleClick('Controller')} />
             <Button label="Ustawienia" onPress={() => handleClick('Settings')} />
+            <Button label="Socket" onPress={() => handleClick('Socket')} />
         </View>
     );
 }
@@ -95,6 +98,18 @@ function App(): React.JSX.Element {
                             headerBackVisible: true,
                             headerTintColor: 'white',
                             title: 'Controller Settings',
+                            headerTitleStyle: { color: 'white' },
+                        }}
+                    />
+                    <Stack.Screen
+                        name="Socket"
+                        component={VideoClient}
+                        options={{
+                            headerBackTitle: '',
+                            headerTransparent: true,
+                            headerBackVisible: true,
+                            headerTintColor: 'white',
+                            title: 'New Controller',
                             headerTitleStyle: { color: 'white' },
                         }}
                     />
