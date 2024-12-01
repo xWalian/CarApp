@@ -9,10 +9,10 @@ global.Buffer = global.Buffer || Buffer;
 const VideoClient = () => {
     const [frameCount, setFrameCount] = useState(0);
     const [imageSource, setImageSource] = useState<string | null>(null);
-    const prevFrameRef = useRef<string | null>(null);  // Track the previous image source
+    const prevFrameRef = useRef<string | null>(null);
 
     const port = 12346;
-    const host = 'inz.local'; // Change to the appropriate server address
+    const host = 'inz.local';
 
     useEffect(() => {
         const socket = dgram.createSocket({ type: 'udp4' });
@@ -23,19 +23,13 @@ const VideoClient = () => {
             console.log(`UDP socket listening on ${host}:${port}`);
         });
 
-        let frameUpdateInterval = 5;  // Co ile klatek aktualizować
-        let receivedFrames = 0;
-
-        socket.on('message', (msg, rinfo) => {
-            receivedFrames++;
-            if (receivedFrames % frameUpdateInterval === 0) {
+        let animationFrame: number;
+        socket.on('message', (msg) => {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = requestAnimationFrame(() => {
                 const base64String = `data:image/jpeg;base64,${Buffer.from(msg).toString('base64')}`;
-                if (base64String !== prevFrameRef.current) {
-                    prevFrameRef.current = base64String;
-                    setImageSource(base64String);
-                    setFrameCount((prevCount) => prevCount + 1);
-                }
-            }
+                setImageSource(base64String);
+            });
         });
 
         return () => {
@@ -47,10 +41,10 @@ const VideoClient = () => {
     return (
         <View style={styles.container}>
             {imageSource && (
-                <Image
+                <FastImage
                     source={{ uri: imageSource }}
                     style={styles.image}
-                    resizeMode={FastImage.resizeMode.cover}  // Similar to the 'cover' option in Image
+                    resizeMode={FastImage.resizeMode.cover}
                 />
             )}
             <Text style={styles.counterText}>
@@ -68,10 +62,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     image: {
-        width: 400,        // Fixed width
-        height: 400,       // Fixed height
-        opacity: 1,        // Ensure no fade-out effect
-        transform: [],     // No scaling or other transforms
+        width: 400,
+        height: 400,
+        transform: [],
     },
     counterText: {
         marginTop: 20,
