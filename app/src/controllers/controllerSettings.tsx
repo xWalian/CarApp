@@ -25,21 +25,11 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
 
     const saveUrl = async () => {
         if (url.length > 0)
-            if (validateURL(url)) {
-                try {
-                    await AsyncStorage.setItem('serverUrl', url);
-                    console.log('URL zapisany!');
-                    setError('');
-                    navigation.navigate('Home');
-                } catch (error) {
-                    console.error('Error saving URL:', error);
-                }
 
-            } else {
-                setError('Podany URL jest niepoprawny');
-            }
+        await AsyncStorage.setItem('serverUrl', url);
         await AsyncStorage.setItem('serverSocketIp', socketIp);
         await AsyncStorage.setItem('serverSocketPort', socketPort);
+        navigation.navigate('Home');
     };
 
     const loadUrl = async () => {
@@ -69,10 +59,10 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Wprowadź URL serwera video</Text>
+            <Text style={styles.title}>Wprowadź port serwera video</Text>
             <TextInput
                 style={[styles.input, error ? styles.errorInput : null]}
-                placeholder="Wprowadź URL"
+                placeholder="Wprowadź port"
                 value={url}
                 onChangeText={(text) => {
                     setUrl(text);
@@ -92,7 +82,7 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
             />
             <TextInput
                 style={[styles.input]}
-                placeholder="Wprowadź Socket"
+                placeholder="Wprowadź port"
                 value={socketPort}
                 onChangeText={(text) => {
                     setSocketPort(text);

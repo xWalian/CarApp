@@ -6,6 +6,7 @@ import Video from "react-native-video";
 import Orientation from "react-native-orientation-locker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TcpSocket from 'react-native-tcp-socket';
+import VideoClient from "./controllerSocket.tsx";
 
 const SOCKET_HOST = '192.168.0.157';
 const SOCKET_PORT = 12345;
@@ -61,12 +62,12 @@ const ControllerScreen: React.FC = () => {
                 console.log("Event: Connected to server");
             });
 
-            newClient.on('error', (error) => {
-                console.error("Client connection error:", error);
-            });
+            // newClient.on('error', (error) => {
+            //     console.error("Client connection error:", error);
+            // });
 
             newClient.on('close', (hadError) => {
-                console.log("Client connection closed", hadError ? 'with error' : 'without error');
+                // console.log("Client connection closed", hadError ? 'with error' : 'without error');
                 clientRef.current = null;
                 setTimeout(reconnect, 5000);
             });
@@ -177,12 +178,7 @@ const ControllerScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <Video
-                source={{uri: url}}
-                style={StyleSheet.absoluteFill}
-                resizeMode="cover"
-                controls={false}
-            />
+            <VideoClient port={parseInt(url)} />
             <View style={styles.joystickContainer}>
                 <ReactNativeJoystick
                     color="#06b6d4"
