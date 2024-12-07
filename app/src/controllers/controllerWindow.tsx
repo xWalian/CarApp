@@ -100,14 +100,13 @@ const ControllerScreen: React.FC = () => {
                     latestDataRef.current = null;
                 }
                 if (clientRef.current) {
-                    if (latestDataRef.current == prevDataRef.current) {
+                    if (latestDataRef.current == prevDataRef.current && latestDataRef.current) {
                         if (latestDataRef.current.type) {
                             const message = JSON.stringify(latestDataRef.current);
-                            const encryptedMessage = encryptData(message);
+                            const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
                             console.log("encryptedMessage", encryptedMessage);
 
                             if(encryptedMessage){
-                                console.log("decryptData", decryptData(encryptedMessage));
                                 clientRef.current.write(encryptedMessage);
                             }
 
@@ -119,10 +118,9 @@ const ControllerScreen: React.FC = () => {
                     if (latestDataRef.current) {
                         const message = JSON.stringify(latestDataRef.current);
 
-                        const encryptedMessage = encryptData(message);
+                        const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
                         console.log("encryptedMessage", encryptedMessage);
                         if(encryptedMessage){
-                            console.log("decryptData", decryptData(encryptedMessage));
                             clientRef.current.write(encryptedMessage);
                         }
                         console.log("Joystick data sent:", message);
@@ -179,10 +177,9 @@ const ControllerScreen: React.FC = () => {
 
                 latestDataRef.current = data;
                 if (clientRef.current) {
-                    const encryptedMessage = encryptData(message);
+                    const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
                     console.log("encryptedMessage", encryptedMessage);
                     if(encryptedMessage){
-                        console.log("decryptData", decryptData(encryptedMessage));
                         clientRef.current.write(encryptedMessage);
                     }
                 }
@@ -204,9 +201,9 @@ const ControllerScreen: React.FC = () => {
         );
         const initializationVector = CryptoJS.enc.Hex.parse('da385e282f16d7d094c4a87d6e11eea1');
 
-        // key.current = CryptoJS.PBKDF2(password, salt, { keySize: 256 / 32 });
-        key.current = CryptoJS.enc.Hex.parse("6481218e4a2231a7eee6afa356fd098d386d5a58ff22ef03fe4d8bfea9bb5e48");
-        console.log("key", key.current);
+        // key.current = CryptoJS.PBKDF2(password, salt, { keySize: 256 / 8 });
+        key.current = CryptoJS.enc.Hex.parse('de3fb02a2f1db0f5adf4a633f50cbcb229e19b086e93da786d1d9f845ae8f623');
+        console.log("key", key.current.toString());
         iv.current = initializationVector;
         console.log("iv", iv.current.toString());
     }, []);
@@ -220,10 +217,9 @@ const ControllerScreen: React.FC = () => {
         const encrypted = CryptoJS.AES.encrypt(data, key.current, {
             iv: iv.current,
             mode: CryptoJS.mode.CBC,
-            padding: CryptoJS.pad.Pkcs7,
         });
 
-        return CryptoJS.enc.Base64.stringify(encrypted.ciphertext);
+        return encrypted.toString();
     };
 
     const decryptData = (encryptedData: string) => {
