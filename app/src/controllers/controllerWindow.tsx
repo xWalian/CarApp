@@ -2,11 +2,10 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {ReactNativeJoystick} from "@korsolutions/react-native-joystick";
 import {useCameraDevices, useCameraPermission} from 'react-native-vision-camera';
-import Video from "react-native-video";
 import Orientation from "react-native-orientation-locker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TcpSocket from 'react-native-tcp-socket';
-import VideoClient from "./controllerSocket.tsx";
+import CryptoJS from 'crypto-js';
 
 const SOCKET_HOST = '192.168.0.157';
 const SOCKET_PORT = 12345;
@@ -48,8 +47,7 @@ const ControllerScreen: React.FC = () => {
     };
 
     const reconnect = () => {
-        if(!clientRef.current)
-        {
+        if (!clientRef.current) {
             const newClient = TcpSocket.createConnection(
                 {host: socketIpRef.current ?? '', port: socketPortRef.current ?? 0},
                 () => {
@@ -67,7 +65,7 @@ const ControllerScreen: React.FC = () => {
             // });
 
             newClient.on('close', (hadError) => {
-                // console.log("Client connection closed", hadError ? 'with error' : 'without error');
+                console.log("Client connection closed", hadError ? 'with error' : 'without error');
                 clientRef.current = null;
                 setTimeout(reconnect, 5000);
             });
@@ -81,36 +79,52 @@ const ControllerScreen: React.FC = () => {
 
     useEffect(() => {
         loadUrl();
+        initEncryption();
         Orientation.lockToLandscape();
         reconnect();
+
         return () => {
             if (clientRef.current) clientRef.current.destroy();
             Orientation.lockToPortrait();
         };
     }, []);
 
-    function interval(){
+    function interval() {
         intervalRef.current = setInterval(() => {
             if (latestDataRef.current) {
-                if(latestDataRef.current.type == "stop"){
+                if (latestDataRef.current.type == "stop") {
                     if (intervalRef.current) {
                         clearInterval(intervalRef.current);
                         intervalRef.current = null;
                     }
                     latestDataRef.current = null;
                 }
-                if (clientRef.current){
-                    if(latestDataRef.current == prevDataRef.current){
-                        if(latestDataRef.current.type){
+                if (clientRef.current) {
+                    if (latestDataRef.current == prevDataRef.current) {
+                        if (latestDataRef.current.type) {
+                            const message = JSON.stringify(latestDataRef.current);
+                            const encryptedMessage = encryptData(message);
+                            console.log("encryptedMessage", encryptedMessage);
+
+                            if(encryptedMessage){
+                                console.log("decryptData", decryptData(encryptedMessage));
+                                clientRef.current.write(encryptedMessage);
+                            }
+
                             latestDataRef.current.type = "hold"
                         }
                     }
 
                     prevDataRef.current = latestDataRef.current
-                    if(latestDataRef.current) {
+                    if (latestDataRef.current) {
                         const message = JSON.stringify(latestDataRef.current);
 
-                        clientRef.current.write(message);
+                        const encryptedMessage = encryptData(message);
+                        console.log("encryptedMessage", encryptedMessage);
+                        if(encryptedMessage){
+                            console.log("decryptData", decryptData(encryptedMessage));
+                            clientRef.current.write(encryptedMessage);
+                        }
                         console.log("Joystick data sent:", message);
                     } else {
                         console.log("stopped");
@@ -143,9 +157,10 @@ const ControllerScreen: React.FC = () => {
                 return;
             }
             try {
-                if(!intervalRef.current){
+                if (!intervalRef.current) {
                     interval()
                 }
+
                 latestDataRef.current = data
             } catch (error) {
                 console.error("Failed to send message:", error);
@@ -154,7 +169,7 @@ const ControllerScreen: React.FC = () => {
         []
     );
 
-    const handleJoystickStop= useCallback(
+    const handleJoystickStop = useCallback(
         (data: any) => {
             if (!clientRef.current || clientRef.current.readyState !== "open") {
                 return;
@@ -163,8 +178,13 @@ const ControllerScreen: React.FC = () => {
                 const message = JSON.stringify(latestDataRef.current);
 
                 latestDataRef.current = data;
-                if(clientRef.current){
-                    clientRef.current.write(message);
+                if (clientRef.current) {
+                    const encryptedMessage = encryptData(message);
+                    console.log("encryptedMessage", encryptedMessage);
+                    if(encryptedMessage){
+                        console.log("decryptData", decryptData(encryptedMessage));
+                        clientRef.current.write(encryptedMessage);
+                    }
                 }
 
             } catch (error) {
@@ -174,18 +194,71 @@ const ControllerScreen: React.FC = () => {
         []
     );
 
+    const key = useRef<any | null>(null);
+    const iv = useRef<any | null>(null);
+
+    const initEncryption = useCallback(() => {
+        const password = 'veryStrongPassword';
+        const salt = CryptoJS.enc.Hex.parse(
+            'da02d941cd19d955d78e10c1b592bd0e8e4189af4df96b0fa2b645b6'
+        );
+        const initializationVector = CryptoJS.enc.Hex.parse('da385e282f16d7d094c4a87d6e11eea1');
+
+        // key.current = CryptoJS.PBKDF2(password, salt, { keySize: 256 / 32 });
+        key.current = CryptoJS.enc.Hex.parse("6481218e4a2231a7eee6afa356fd098d386d5a58ff22ef03fe4d8bfea9bb5e48");
+        console.log("key", key.current);
+        iv.current = initializationVector;
+        console.log("iv", iv.current.toString());
+    }, []);
+
+    const encryptData = (data: string) => {
+        if (!key.current || !iv.current) {
+            console.error('Encryption key or IV not initialized');
+            return null;
+        }
+
+        const encrypted = CryptoJS.AES.encrypt(data, key.current, {
+            iv: iv.current,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+        });
+
+        return CryptoJS.enc.Base64.stringify(encrypted.ciphertext);
+    };
+
+    const decryptData = (encryptedData: string) => {
+        if (!key.current || !iv.current) {
+            console.error('Encryption key or IV not initialized');
+            return null;
+        }
+
+        try {
+            const decryptedBytes = CryptoJS.AES.decrypt(encryptedData, key.current, {
+                iv: iv.current,
+                mode: CryptoJS.mode.CBC,
+                padding: CryptoJS.pad.Pkcs7,
+            });
+
+            return decryptedBytes.toString(CryptoJS.enc.Utf8);
+        } catch (error) {
+            console.error('Decryption failed:', error);
+            return null;
+        }
+    };
+
+
     if (device == null) return <View style={styles.container}/>;
 
     return (
         <View style={styles.container}>
-            <VideoClient port={parseInt(url)} />
+            {/*<VideoClient port={parseInt(url)} />*/}
             <View style={styles.joystickContainer}>
                 <ReactNativeJoystick
                     color="#06b6d4"
                     radius={80}
                     onMove={(data) => handleJoystickMove(data)}
                     onStart={(data) => handleJoystickStart(data)}
-                    onStop={(data) =>handleJoystickStop(data)}
+                    onStop={(data) => handleJoystickStop(data)}
                 />
             </View>
         </View>
