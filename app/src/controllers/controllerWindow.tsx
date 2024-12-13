@@ -1,11 +1,12 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {ReactNativeJoystick} from "@korsolutions/react-native-joystick";
 import {useCameraDevices, useCameraPermission} from 'react-native-vision-camera';
 import Orientation from "react-native-orientation-locker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import TcpSocket from 'react-native-tcp-socket';
 import CryptoJS from 'crypto-js';
+import VideoClient from "./controllerSocket.tsx";
 
 const SOCKET_HOST = '192.168.0.157';
 const SOCKET_PORT = 12345;
@@ -101,7 +102,7 @@ const ControllerScreen: React.FC = () => {
                 }
                 if (clientRef.current) {
                     if (latestDataRef.current == prevDataRef.current && latestDataRef.current) {
-                        if (latestDataRef.current.type) {
+                        if (latestDataRef.current.type && latestDataRef.current.type != "break") {
                             const message = JSON.stringify(latestDataRef.current);
                             const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
                             console.log("encryptedMessage", encryptedMessage);
@@ -242,20 +243,60 @@ const ControllerScreen: React.FC = () => {
         }
     };
 
+    const [joystickDisabled, setJoystickDisabled] = useState(false);
 
-    if (device == null) return <View style={styles.container}/>;
+    const handleBrakePress = useCallback(() => {
+        if (!clientRef.current || clientRef.current.readyState !== "open") {
+            return;
+        }
+        try {
+            setJoystickDisabled(true); // Zablokowanie joysticka
+            if (!intervalRef.current) {
+                interval();
+            }
+            latestDataRef.current = JSON.parse('{"position":{"x":0,"y":0},"angle":{"radian":0,"degree":0},"force":0,"type":"break"}')
+        } catch (error) {
+            console.error("Failed to send message:", error);
+        }
+    }, []);
+
+    const handleBrakeRelease = useCallback(() => {
+        if (!clientRef.current || clientRef.current.readyState !== "open") {
+            return;
+        }
+        try {
+            setJoystickDisabled(false); // Odblokowanie joysticka
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        } catch (error) {
+            console.error("Failed to send message:", error);
+        }
+    }, []);
+
+    if (device == null) return <View style={styles.container} />;
 
     return (
         <View style={styles.container}>
-            {/*<VideoClient port={parseInt(url)} />*/}
-            <View style={styles.joystickContainer}>
-                <ReactNativeJoystick
-                    color="#06b6d4"
-                    radius={80}
-                    onMove={(data) => handleJoystickMove(data)}
-                    onStart={(data) => handleJoystickStart(data)}
-                    onStop={(data) => handleJoystickStop(data)}
-                />
+            <VideoClient port={parseInt(url)} />
+            <View style={styles.controlsContainer}>
+                <TouchableOpacity
+                    style={styles.brakeButton}
+                    onPressIn={handleBrakePress}
+                    onPressOut={handleBrakeRelease}
+                >
+                    <Text style={styles.brakeButtonText}>Hamulec</Text>
+                </TouchableOpacity>
+                <View style={styles.joystickContainer}>
+                    <ReactNativeJoystick
+                        color="#06b6d4"
+                        radius={80}
+                        onMove={joystickDisabled ? undefined : (data) => handleJoystickMove(data)}
+                        onStart={joystickDisabled ? undefined : (data) => handleJoystickStart(data)}
+                        onStop={joystickDisabled ? undefined : (data) => handleJoystickStop(data)}
+                    />
+                </View>
             </View>
         </View>
     );
@@ -265,16 +306,35 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
-        justifyContent: 'flex-end',
-        alignItems: 'flex-end',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    controlsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        margin: 20,
     },
     joystickContainer: {
-        margin: 20,
+        marginLeft: 20,
     },
     video: {
         backgroundColor: '#111',
         width: '100%',
         height: '100%',
+    },
+    brakeButton: {
+        backgroundColor: '#514f4f',
+        height: 120,
+        padding: 15,
+        marginLeft: 20,
+        borderRadius: 10,
+    },
+    brakeButtonText: {
+        color: '#ffffff',
+        fontSize: 18,
+        fontWeight: 'bold',
     },
 });
 
