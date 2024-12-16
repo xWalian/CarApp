@@ -94,6 +94,13 @@ const ControllerScreen: React.FC = () => {
         intervalRef.current = setInterval(() => {
             if (latestDataRef.current) {
                 if (latestDataRef.current.type == "stop") {
+                    const message = JSON.stringify(latestDataRef.current);
+                    const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
+                    console.log("encryptedMessage", encryptedMessage);
+
+                    if(encryptedMessage && clientRef.current){
+                        clientRef.current.write(encryptedMessage);
+                    }
                     if (intervalRef.current) {
                         clearInterval(intervalRef.current);
                         intervalRef.current = null;
@@ -174,17 +181,7 @@ const ControllerScreen: React.FC = () => {
                 return;
             }
             try {
-                const message = JSON.stringify(latestDataRef.current);
-
                 latestDataRef.current = data;
-                if (clientRef.current) {
-                    const encryptedMessage = encryptData("jsonaaaaaaaaaaaa" + message);
-                    console.log("encryptedMessage", encryptedMessage);
-                    if(encryptedMessage){
-                        clientRef.current.write(encryptedMessage);
-                    }
-                }
-
             } catch (error) {
                 console.error("Failed to send message:", error);
             }
