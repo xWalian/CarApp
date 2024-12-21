@@ -16,7 +16,7 @@ const ControllerScreen: React.FC = () => {
   const socketPortRef = useRef<number | null>(null);
 
   const devices = useCameraDevices();
-  const device = devices.find(device => device.position === 'front');
+  const device = devices.find(value => value.position === 'front');
 
   const clientRef = useRef<TcpSocket.Socket | null>(null);
 
@@ -39,7 +39,7 @@ const ControllerScreen: React.FC = () => {
       }
       if (savedSocketPort) {
         console.log('savedSocketPort value', savedSocketPort);
-        socketPortRef.current = parseInt(savedSocketPort);
+        socketPortRef.current = parseInt(savedSocketPort, 10);
       }
     } catch (error) {
       console.error('Error loading URL:', error);
@@ -65,7 +65,7 @@ const ControllerScreen: React.FC = () => {
         try {
           const response = data.toString();
           const decryptedMessage = decryptData(response);
-          console.log('Otrzymano odpowiedź od serwera:', decryptedMessage);
+          // console.log('Otrzymano odpowiedź od serwera:', decryptedMessage);
           if (decryptedMessage) {
             const json = JSON.parse(decryptedMessage);
             if (json.current_velocity) {
@@ -106,7 +106,7 @@ const ControllerScreen: React.FC = () => {
     reconnect();
 
     return () => {
-      if (clientRef.current) clientRef.current.destroy();
+      if (clientRef.current) {clientRef.current.destroy();}
       Orientation.lockToPortrait();
     };
   }, []);
@@ -114,7 +114,7 @@ const ControllerScreen: React.FC = () => {
   function interval() {
     intervalRef.current = setInterval(() => {
       if (latestDataRef.current) {
-        if (latestDataRef.current.type == 'stop') {
+        if (latestDataRef.current.type === 'stop') {
           const message = JSON.stringify(latestDataRef.current);
           const encryptedMessage = encryptData('jsonaaaaaaaaaaaa' + message);
           console.log('encryptedMessage', encryptedMessage);
@@ -130,12 +130,12 @@ const ControllerScreen: React.FC = () => {
         }
         if (clientRef.current) {
           if (
-            latestDataRef.current == prevDataRef.current &&
+            latestDataRef.current === prevDataRef.current &&
             latestDataRef.current
           ) {
             if (
               latestDataRef.current.type &&
-              latestDataRef.current.type != 'break'
+              latestDataRef.current.type !== 'break'
             ) {
               const message = JSON.stringify(latestDataRef.current);
               const encryptedMessage = encryptData(
