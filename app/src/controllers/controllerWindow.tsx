@@ -68,10 +68,10 @@ const ControllerScreen: React.FC = () => {
           // console.log('Otrzymano odpowiedź od serwera:', decryptedMessage);
           if (decryptedMessage) {
             const json = JSON.parse(decryptedMessage);
-            if (json.current_velocity) {
+            if (json.current_velocity !== undefined ) {
               setCurrentVelocity(json.current_velocity || 0);
             }
-            if (json.max_velocity) {
+            if (json.max_velocity !== undefined) {
               setMaxVelocity(json.max_velocity || 100);
             }
           }
