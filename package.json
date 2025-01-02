@@ -29,8 +29,6 @@
     "react-native-screens": "^3.35.0",
     "react-native-tcp-socket": "^6.2.0",
     "react-native-udp": "^4.1.7",
-    "react-native-video": "^6.7.0",
-    "react-native-vision-camera": "^4.5.3",
     "react-native-windows": "^0.75.3",
     "settings": "^0.1.1",
     "socket.io-client": "^4.8.1"

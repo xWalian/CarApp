@@ -1,41 +1,37 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {ReactNativeJoystick} from '@korsolutions/react-native-joystick';
-import {useCameraDevices} from 'react-native-vision-camera';
 import Orientation from 'react-native-orientation-locker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TcpSocket from 'react-native-tcp-socket';
 import CryptoJS from 'crypto-js';
-import VideoClient from './controllerSocket.tsx';
+import VideoClient from './controllerVideo.tsx';
 import ProgressBar from '../components/progressBar.tsx';
 
 const ControllerScreen: React.FC = () => {
-  const [url, setUrl] = useState<string>('');
+  const [videoPort, setVideoPort] = useState<string>('');
 
   const socketIpRef = useRef<string | null>(null);
   const socketPortRef = useRef<number | null>(null);
 
-  const devices = useCameraDevices();
-  const device = devices.find(value => value.position === 'front');
-
   const clientRef = useRef<TcpSocket.Socket | null>(null);
 
-  const loadUrl = async () => {
+  const loadData = async () => {
     try {
-      const savedUrl: string | null = await AsyncStorage.getItem('serverUrl');
-      const savedSocketUrl: string | null = await AsyncStorage.getItem(
+      const savedVideoPort: string | null = await AsyncStorage.getItem('serverVideoPort');
+      const savedSocketIp: string | null = await AsyncStorage.getItem(
         'serverSocketIp',
       );
       const savedSocketPort: string | null = await AsyncStorage.getItem(
         'serverSocketPort',
       );
-      console.debug('url', savedUrl);
-      if (savedUrl) {
-        setUrl(savedUrl);
+      console.debug('url', savedVideoPort);
+      if (savedVideoPort) {
+        setVideoPort(savedVideoPort);
       }
-      if (savedSocketUrl) {
-        console.log('savedSocketUrl value', savedSocketUrl);
-        socketIpRef.current = savedSocketUrl;
+      if (savedSocketIp) {
+        console.log('savedSocketUrl value', savedSocketIp);
+        socketIpRef.current = savedSocketIp;
       }
       if (savedSocketPort) {
         console.log('savedSocketPort value', savedSocketPort);
@@ -65,7 +61,6 @@ const ControllerScreen: React.FC = () => {
         try {
           const response = data.toString();
           const decryptedMessage = decryptData(response);
-          // console.log('Otrzymano odpowiedź od serwera:', decryptedMessage);
           if (decryptedMessage) {
             const json = JSON.parse(decryptedMessage);
             if (json.current_velocity !== undefined ) {
@@ -76,13 +71,9 @@ const ControllerScreen: React.FC = () => {
             }
           }
         } catch (error) {
-          console.error('Błąd podczas przetwarzania odpowiedzi:', error);
+          console.error('Error during processing message:', error);
         }
       });
-
-      // newClient.on('error', error => {
-      //   // console.error('Błąd klienta:', error);
-      // });
 
       newClient.on('close', hadError => {
         console.log(
@@ -100,7 +91,7 @@ const ControllerScreen: React.FC = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    loadUrl();
+    loadData();
     initEncryption();
     Orientation.lockToLandscape();
     reconnect();
@@ -127,44 +118,47 @@ const ControllerScreen: React.FC = () => {
             intervalRef.current = null;
           }
           latestDataRef.current = null;
-        }
-        if (clientRef.current) {
-          if (
-            latestDataRef.current === prevDataRef.current &&
-            latestDataRef.current
-          ) {
+          console.log('stopped');
+        } else {
+          if (clientRef.current) {
             if (
-              latestDataRef.current.type &&
-              latestDataRef.current.type !== 'break'
+                latestDataRef.current === prevDataRef.current &&
+                latestDataRef.current
             ) {
-              const message = JSON.stringify(latestDataRef.current);
-              const encryptedMessage = encryptData(
-                'jsonaaaaaaaaaaaa' + message,
-              );
-              console.log('encryptedMessage', encryptedMessage);
+              if (
+                  latestDataRef.current.type &&
+                  latestDataRef.current.type !== 'break'
+              ) {
+                const message = JSON.stringify(latestDataRef.current);
+                const encryptedMessage = encryptData(
+                    'jsonaaaaaaaaaaaa' + message,
+                );
+                console.log('encryptedMessage', encryptedMessage);
 
+                if (encryptedMessage) {
+                  clientRef.current.write(encryptedMessage);
+                }
+
+                latestDataRef.current.type = 'hold';
+              }
+            }
+
+            prevDataRef.current = latestDataRef.current;
+            if (latestDataRef.current) {
+              const message = JSON.stringify(latestDataRef.current);
+
+              const encryptedMessage = encryptData('jsonaaaaaaaaaaaa' + message);
+              console.log('encryptedMessage', encryptedMessage);
               if (encryptedMessage) {
                 clientRef.current.write(encryptedMessage);
               }
-
-              latestDataRef.current.type = 'hold';
+              console.log('Joystick data sent:', message);
+            } else {
+              console.log('stopped');
             }
-          }
-
-          prevDataRef.current = latestDataRef.current;
-          if (latestDataRef.current) {
-            const message = JSON.stringify(latestDataRef.current);
-
-            const encryptedMessage = encryptData('jsonaaaaaaaaaaaa' + message);
-            console.log('encryptedMessage', encryptedMessage);
-            if (encryptedMessage) {
-              clientRef.current.write(encryptedMessage);
-            }
-            console.log('Joystick data sent:', message);
-          } else {
-            console.log('stopped');
           }
         }
+
       }
     }, 100);
   }
@@ -210,21 +204,13 @@ const ControllerScreen: React.FC = () => {
   const iv = useRef<any | null>(null);
 
   const initEncryption = useCallback(() => {
-    // const password = 'veryStrongPassword';
-    // const salt = CryptoJS.enc.Hex.parse(
-    //   'da02d941cd19d955d78e10c1b592bd0e8e4189af4df96b0fa2b645b6',
-    // );
     const initializationVector = CryptoJS.enc.Hex.parse(
       'da385e282f16d7d094c4a87d6e11eea1',
     );
-
-    // key.current = CryptoJS.PBKDF2(password, salt, { keySize: 256 / 8 });
     key.current = CryptoJS.enc.Hex.parse(
       'de3fb02a2f1db0f5adf4a633f50cbcb229e19b086e93da786d1d9f845ae8f623',
     );
-    console.log('key', key.current.toString());
     iv.current = initializationVector;
-    console.log('iv', iv.current.toString());
   }, []);
 
   const encryptData = (data: string) => {
@@ -268,7 +254,7 @@ const ControllerScreen: React.FC = () => {
       return;
     }
     try {
-      setJoystickDisabled(true); // Zablokowanie joysticka
+      setJoystickDisabled(true);
       if (!intervalRef.current) {
         interval();
       }
@@ -285,7 +271,7 @@ const ControllerScreen: React.FC = () => {
       return;
     }
     try {
-      setJoystickDisabled(false); // Odblokowanie joysticka
+      setJoystickDisabled(false);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -307,15 +293,11 @@ const ControllerScreen: React.FC = () => {
     }
   };
 
-  if (device == null) {
-    return <View style={styles.container} />;
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.progressBar}>
         <Text style={styles.label}>
-          Aktualna prędkość: {currentVelocity} / {maxVelocity} km/h
+          Aktualna prędkość: {currentVelocity} / {maxVelocity} %
         </Text>
         <ProgressBar
           progress={progress}
@@ -323,7 +305,7 @@ const ControllerScreen: React.FC = () => {
           fillColor={getProgressBarColor()}
         />
       </View>
-      <VideoClient port={parseInt(url, 10)} />
+      <VideoClient port={parseInt(videoPort, 10)} />
       <View style={styles.controlsContainer}>
         <TouchableOpacity
           style={styles.brakeButton}

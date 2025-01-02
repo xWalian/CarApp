@@ -8,7 +8,6 @@ import ControllerScreen from "./app/src/controllers/controllerWindow.tsx";
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ControllerSettings from "./app/src/controllers/controllerSettings.tsx";
-import VideoClient from "./app/src/controllers/controllerSocket.tsx";
 
 import {useEffect} from "react";
 import Orientation from 'react-native-orientation-locker';

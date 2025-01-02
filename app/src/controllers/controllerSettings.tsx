@@ -12,21 +12,15 @@ type ControllerScreenProps = {
     navigation: ControllerScreenNavigationProp;
 };
 
-const validateURL = (url: string): boolean => {
-    const regex = /^(ftp|http|https):\/\/[^ "]+$/;
-    return regex.test(url);
-};
-
-const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
-    const [url, setUrl] = useState<string>('');
+const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
+    const [videoPort, setVideoPort] = useState<string>('');
     const [socketIp, setSocketIp] = useState<string>('');
     const [socketPort, setSocketPort] = useState<string>('');
-    const [error, setError] = useState<string>('');
 
     const saveUrl = async () => {
-        if (url.length > 0)
+        if (videoPort.length > 0)
 
-        await AsyncStorage.setItem('serverUrl', url);
+        await AsyncStorage.setItem('serverVideoPort', videoPort);
         await AsyncStorage.setItem('serverSocketIp', socketIp);
         await AsyncStorage.setItem('serverSocketPort', socketPort);
         navigation.navigate('Home');
@@ -34,12 +28,11 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
 
     const loadUrl = async () => {
         try {
-            const savedUrl = await AsyncStorage.getItem('serverUrl');
+            const savedVideoPort = await AsyncStorage.getItem('serverVideoPort');
             const savedSocketUrl = await AsyncStorage.getItem('serverSocketIp');
             const savedSocketPort = await AsyncStorage.getItem('serverSocketPort');
-            console.debug("url", savedUrl);
-            if (savedUrl) {
-                setUrl(savedUrl);
+            if (savedVideoPort) {
+                setVideoPort(savedVideoPort);
             }
             if (savedSocketUrl) {
                 setSocketIp(savedSocketUrl);
@@ -61,15 +54,13 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
         <View style={styles.container}>
             <Text style={styles.title}>Wprowadź port serwera video</Text>
             <TextInput
-                style={[styles.input, error ? styles.errorInput : null]}
+                style={[styles.input]}
                 placeholder="Wprowadź port"
-                value={url}
+                value={videoPort}
                 onChangeText={(text) => {
-                    setUrl(text);
-                    setError('');
+                    setSocketPort(text);
                 }}
             />
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <Text style={styles.title}>Wprowadź socket serwera</Text>
             <TextInput
                 style={[styles.input]}
@@ -77,7 +68,6 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
                 value={socketIp}
                 onChangeText={(text) => {
                     setSocketIp(text);
-                    setError('');
                 }}
             />
             <TextInput
@@ -86,7 +76,6 @@ const ControllerScreen: React.FC<ControllerScreenProps> = ({navigation}) => {
                 value={socketPort}
                 onChangeText={(text) => {
                     setSocketPort(text);
-                    setError('');
                 }}
             />
             <Button title="Zapisz" onPress={saveUrl}/>
@@ -131,4 +120,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ControllerScreen;
+export default ControllerSettings;

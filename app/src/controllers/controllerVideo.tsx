@@ -11,7 +11,6 @@ interface VideoClientProps {
 }
 
 const VideoClient = ({port}: VideoClientProps) => {
-    const [frameCount, setFrameCount] = useState(0);
     const [activeIndex, setActiveIndex] = useState(0);
     const imageBuffer = useRef<string[]>(Array(3).fill(null));
     const socketRef = useRef<any | null>(null);
@@ -35,7 +34,6 @@ const VideoClient = ({port}: VideoClientProps) => {
             if (msg.length >= MIN_IMAGE_SIZE) {
                 imageBuffer.current[activeIndex] = `data:image/jpeg;base64,${msg.toString('base64')}`;
                 setActiveIndex((prevIndex) => (prevIndex + 1) % 3);
-                setFrameCount((prev) => prev + 1);
             }
         });
 
