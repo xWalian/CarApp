@@ -58,7 +58,7 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
                 placeholder="Wprowadź port"
                 value={videoPort}
                 onChangeText={(text) => {
-                    setSocketPort(text);
+                    setVideoPort(text);
                 }}
             />
             <Text style={styles.title}>Wprowadź socket serwera</Text>
