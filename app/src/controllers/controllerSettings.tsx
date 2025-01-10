@@ -12,18 +12,55 @@ type ControllerScreenProps = {
     navigation: ControllerScreenNavigationProp;
 };
 
+const validateIp = (ip: string): boolean => {
+    const regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    return regex.test(ip);
+};
+
+const validatePort = (port: string): boolean => {
+    const regex = /^[0-9]+$/;
+    const portNumber = parseInt(port, 10);
+    return regex.test(port) && portNumber >= 0 && portNumber <= 65535;
+};
+
 const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
     const [videoPort, setVideoPort] = useState<string>('');
     const [socketIp, setSocketIp] = useState<string>('');
     const [socketPort, setSocketPort] = useState<string>('');
+    const [error, setError] = useState<string>('');
+    const [socketPortError, setSocketPortError] = useState<string>('');
+    const [portError, setPortError] = useState<string>('');
 
     const saveUrl = async () => {
-        if (videoPort.length > 0)
+        let validate: boolean = true
+        if(videoPort != '')
+        if (!validatePort(videoPort)) {
+            setPortError("Port musi być wartością od 0 do 65535")
+            validate = false
+        } else {
+            setPortError("")
+        }
+        if(socketIp != '')
+        if (!validateIp(socketIp)) {
+            setError("Ip musi być w formacie 0.0.0.0 do 255.255.255.255")
+            validate = false
+        } else {
+            setError("")
+        }
+        if(socketPort != '')
+        if (!validatePort(socketPort)) {
+            setSocketPortError("Port musi być wartością od 0 do 65535")
+            validate = false
+        } else {
+            setSocketPortError("")
+        }
 
         await AsyncStorage.setItem('serverVideoPort', videoPort);
         await AsyncStorage.setItem('serverSocketIp', socketIp);
         await AsyncStorage.setItem('serverSocketPort', socketPort);
-        navigation.navigate('Home');
+        if(validate){
+            navigation.navigate('Home');
+        }
     };
 
     const loadUrl = async () => {
@@ -31,13 +68,14 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
             const savedVideoPort = await AsyncStorage.getItem('serverVideoPort');
             const savedSocketUrl = await AsyncStorage.getItem('serverSocketIp');
             const savedSocketPort = await AsyncStorage.getItem('serverSocketPort');
-            if (savedVideoPort) {
+
+            if (savedVideoPort && validatePort(savedVideoPort)) {
                 setVideoPort(savedVideoPort);
             }
-            if (savedSocketUrl) {
+            if (savedSocketUrl && validateIp(savedSocketUrl)) {
                 setSocketIp(savedSocketUrl);
             }
-            if (savedSocketPort) {
+            if (savedSocketPort && validatePort(savedSocketPort)) {
                 setSocketPort(savedSocketPort)
             }
         } catch (error) {
@@ -52,6 +90,7 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
 
     return (
         <View style={styles.container}>
+
             <Text style={styles.title}>Wprowadź port serwera video</Text>
             <TextInput
                 style={[styles.input]}
@@ -59,8 +98,10 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
                 value={videoPort}
                 onChangeText={(text) => {
                     setVideoPort(text);
+                    setError('');
                 }}
             />
+            {portError ? <Text style={styles.errorText}>{portError}</Text> : null}
             <Text style={styles.title}>Wprowadź socket serwera</Text>
             <TextInput
                 style={[styles.input]}
@@ -68,16 +109,20 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
                 value={socketIp}
                 onChangeText={(text) => {
                     setSocketIp(text);
+                    setPortError('');
                 }}
             />
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <TextInput
                 style={[styles.input]}
                 placeholder="Wprowadź port"
                 value={socketPort}
                 onChangeText={(text) => {
                     setSocketPort(text);
+                    setSocketPortError('');
                 }}
             />
+            {socketPortError ? <Text style={styles.errorText}>{socketPortError}</Text> : null}
             <Button title="Zapisz" onPress={saveUrl}/>
         </View>
     );
