@@ -55,10 +55,10 @@ const ControllerSettings: React.FC<ControllerScreenProps> = ({navigation}) => {
             setSocketPortError("")
         }
 
-        await AsyncStorage.setItem('serverVideoPort', videoPort);
-        await AsyncStorage.setItem('serverSocketIp', socketIp);
-        await AsyncStorage.setItem('serverSocketPort', socketPort);
         if(validate){
+            await AsyncStorage.setItem('serverVideoPort', videoPort);
+            await AsyncStorage.setItem('serverSocketIp', socketIp);
+            await AsyncStorage.setItem('serverSocketPort', socketPort);
             navigation.navigate('Home');
         }
     };
